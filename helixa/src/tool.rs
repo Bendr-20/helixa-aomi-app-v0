@@ -6,6 +6,9 @@ pub(crate) struct SearchAgents;
 pub(crate) struct GetAgentProfile;
 pub(crate) struct CheckCred;
 pub(crate) struct CompareAgents;
+pub(crate) struct GetMultipassProfile;
+pub(crate) struct GetAgentCard;
+pub(crate) struct GetX401Manifest;
 
 impl DynAomiTool for SearchAgents {
     type App = HelixaApp;
@@ -95,6 +98,48 @@ impl DynAomiTool for CompareAgents {
                 "Review services, wallet ownership, and credentials before high-value work."
             ]
         }))
+    }
+}
+
+impl DynAomiTool for GetMultipassProfile {
+    type App = HelixaApp;
+    type Args = GetMultipassProfileArgs;
+    const NAME: &'static str = "get_multipass_profile";
+    const DESCRIPTION: &'static str = "Fetch a public Helixa Multipass trust profile by slug or Multipass ID. Read-only public profile metadata for Aomi routing context.";
+
+    fn run(_app: &HelixaApp, args: Self::Args, _ctx: DynToolCallCtx) -> Result<Value, String> {
+        let id = require_public_id(&args.id)?;
+        let client = HelixaClient::new()?;
+        let value = client.get_json(&HelixaClient::multipass_profile_path(id))?;
+        Ok(normalize_multipass_profile(value))
+    }
+}
+
+impl DynAomiTool for GetAgentCard {
+    type App = HelixaApp;
+    type Args = GetAgentCardArgs;
+    const NAME: &'static str = "get_agent_card";
+    const DESCRIPTION: &'static str = "Fetch a compact public Multipass agent-card for routing, capability display, service endpoint inspection, and trust context.";
+
+    fn run(_app: &HelixaApp, args: Self::Args, _ctx: DynToolCallCtx) -> Result<Value, String> {
+        let id = require_public_id(&args.id)?;
+        let client = HelixaClient::new()?;
+        let value = client.get_json(&HelixaClient::agent_card_path(id))?;
+        Ok(normalize_agent_card(value))
+    }
+}
+
+impl DynAomiTool for GetX401Manifest {
+    type App = HelixaApp;
+    type Args = GetX401ManifestArgs;
+    const NAME: &'static str = "get_x401_manifest";
+    const DESCRIPTION: &'static str = "Fetch public x401 proof requirement metadata for a Multipass profile. Does not expose private credentials or imply issuer partnership.";
+
+    fn run(_app: &HelixaApp, args: Self::Args, _ctx: DynToolCallCtx) -> Result<Value, String> {
+        let id = require_public_id(&args.id)?;
+        let client = HelixaClient::new()?;
+        let value = client.get_json(&HelixaClient::x401_manifest_path(id))?;
+        Ok(normalize_x401_manifest(value))
     }
 }
 

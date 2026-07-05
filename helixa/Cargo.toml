@@ -1,6 +1,6 @@
 [package]
 name = "helixa"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Read-only Helixa AgentDNA and Cred tools for Aomi"
 
@@ -8,7 +8,7 @@ description = "Read-only Helixa AgentDNA and Cred tools for Aomi"
 crate-type = ["cdylib"]
 
 [dependencies]
-aomi-sdk = "=0.1.20"
+aomi-sdk = "=3.0.0"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "charset", "http2", "json", "query", "rustls"] }
 schemars = "1"
 serde = { version = "1", features = ["derive"] }

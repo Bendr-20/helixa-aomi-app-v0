@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "aomi-sdk"
-version = "0.1.20"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562e4ab569e4a61850a55cab699f05b8a90a3c4cb1fc0c6a419fe73ee9a5b379"
+checksum = "dc4340e35155e8a90de95c8a23208b0398c0db9ba379c711b41b04906a6f524c"
 dependencies = [
  "eyre",
  "libloading",
@@ -305,7 +305,7 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
 name = "helixa"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aomi-sdk",
  "reqwest",

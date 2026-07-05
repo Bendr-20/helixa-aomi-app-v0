@@ -1,6 +1,6 @@
-# Helixa Aomi App V0
+# Helixa Aomi App V0.1
 
-Read-only Aomi App for Helixa AgentDNA profile and Cred lookup.
+Read-only Aomi App for Helixa AgentDNA, Cred, and Multipass trust profile lookup.
 
 ## Tools
 
@@ -8,8 +8,13 @@ Read-only Aomi App for Helixa AgentDNA profile and Cred lookup.
 - `get_agent_profile`
 - `check_cred`
 - `compare_agents`
+- `get_multipass_profile`
+- `get_agent_card`
+- `get_x401_manifest`
 
-V0 intentionally has no minting, payments, SIWA, transaction signing, or writes. It only reads public Helixa API endpoints.
+V0.1 intentionally has no minting, payments, SIWA, transaction signing, or writes. It only reads public Helixa and Multipass endpoints.
+
+The Multipass tools expose public profile, compact agent-card, and x401 proof requirement metadata for Aomi routing context. x401 is identity/authority proof metadata; x402 is payment metadata. This app does not handle either flow directly.
 
 ## Build verification
 

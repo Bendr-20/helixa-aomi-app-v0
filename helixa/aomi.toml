@@ -1,3 +1,4 @@
+[app]
 name = "helixa"
 display_name = "Helixa AgentDNA"
 platform = "community"

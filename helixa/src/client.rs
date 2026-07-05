@@ -34,6 +34,24 @@ pub(crate) struct CompareAgentsArgs {
     pub token_ids: Vec<u64>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct GetMultipassProfileArgs {
+    /// Public Multipass ID, slug, or resolvable identifier, such as bendr-2-1 or mp_helixa_agent_1.
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct GetAgentCardArgs {
+    /// Public Multipass ID, slug, or resolvable identifier, such as bendr-2-1 or mp_helixa_agent_1.
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct GetX401ManifestArgs {
+    /// Public Multipass ID, slug, or resolvable identifier, such as bendr-2-1 or mp_helixa_agent_1.
+    pub id: String,
+}
+
 pub(crate) struct HelixaClient {
     http: reqwest::blocking::Client,
     base_url: String,
@@ -43,7 +61,7 @@ impl HelixaClient {
     pub(crate) fn new() -> Result<Self, String> {
         let http = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(12))
-            .user_agent("aomi-helixa/0.1.0")
+            .user_agent("aomi-helixa/0.1.1")
             .build()
             .map_err(|err| format!("failed to create Helixa HTTP client: {err}"))?;
         Ok(Self {
@@ -62,6 +80,18 @@ impl HelixaClient {
 
     pub(crate) fn cred_path(token_id: u64) -> String {
         format!("/api/v2/agent/{token_id}/cred")
+    }
+
+    pub(crate) fn multipass_profile_path(id: &str) -> String {
+        format!("/api/multipass/{}", url_component(id))
+    }
+
+    pub(crate) fn agent_card_path(id: &str) -> String {
+        format!("/api/multipass/{}/agent-card", url_component(id))
+    }
+
+    pub(crate) fn x401_manifest_path(id: &str) -> String {
+        format!("/api/multipass/{}/x401", url_component(id))
     }
 
     pub(crate) fn get_json(&self, path: &str) -> Result<Value, String> {
@@ -189,6 +219,91 @@ pub(crate) fn normalize_cred(value: Value) -> Value {
     })
 }
 
+pub(crate) fn normalize_multipass_profile(value: Value) -> Value {
+    json!({
+        "schema_version": value.get("schema_version"),
+        "multipass_id": value.get("multipass_id"),
+        "slug": value.get("slug"),
+        "display_name": value.get("display_name"),
+        "subject_type": value.get("subject_type"),
+        "status": value.get("status"),
+        "owner_summary": value.get("owner_summary"),
+        "public_fragments": value.get("public_fragments"),
+        "trust_summary": value.get("trust_summary"),
+        "summary": value.get("summary"),
+        "links": value.get("links"),
+        "agent_card_url": link_href(&value, "agent-card"),
+        "hydrated_profile_url": link_href(&value, "hydrated"),
+        "x401_manifest_url": link_href(&value, "x401"),
+        "x402_manifest_url": link_href(&value, "x402"),
+        "boundaries": [
+            "Multipass profile data is public profile metadata only.",
+            "This Aomi app is read-only and cannot mutate Helixa, Multipass, wallets, or transactions."
+        ],
+    })
+}
+
+pub(crate) fn normalize_agent_card(value: Value) -> Value {
+    json!({
+        "schema_version": value.get("schema_version"),
+        "multipass_id": value.get("multipass_id"),
+        "name": value.get("name"),
+        "subject_type": value.get("subject_type"),
+        "capabilities": value.get("capabilities"),
+        "message_routes": value.get("message_routes"),
+        "service_endpoints": value.get("service_endpoints"),
+        "services": value.get("services"),
+        "trust_summary": value.get("trust_summary"),
+        "contact_policy": value.get("contact_policy"),
+        "standards_refs": value.get("standards_refs"),
+        "accepted_assets": value.get("accepted_assets"),
+        "summary": value.get("summary"),
+        "links": value.get("links"),
+        "x401_manifest_url": value.get("x401_manifest_url"),
+        "x402_manifest_url": value.get("x402_manifest_url"),
+        "routing_note": "Use this card for public discovery and routing context only; do not treat it as execution authority.",
+    })
+}
+
+pub(crate) fn normalize_x401_manifest(value: Value) -> Value {
+    json!({
+        "schema_version": value.get("schema_version"),
+        "multipass_id": value.get("multipass_id"),
+        "x401_supported": value.get("x401_supported"),
+        "proof_challenge_protocol": value.get("proof_challenge_protocol"),
+        "current_header_names": value.get("current_header_names"),
+        "trusted_issuers": value.get("trusted_issuers"),
+        "proof_requirements": value.get("proof_requirements"),
+        "route_policies": value.get("route_policies"),
+        "boundaries": value.get("boundaries"),
+        "safety_note": "Public x401 metadata describes proof requirements and route policy only. It does not expose private credentials or imply an issuer partnership.",
+    })
+}
+
+fn link_href(value: &Value, rel: &str) -> Option<String> {
+    value
+        .get("links")
+        .and_then(Value::as_array)
+        .and_then(|links| {
+            links.iter().find_map(|link| {
+                if link.get("rel").and_then(Value::as_str) == Some(rel) {
+                    link.get("href").and_then(Value::as_str).map(str::to_string)
+                } else {
+                    None
+                }
+            })
+        })
+}
+
+pub(crate) fn require_public_id(id: &str) -> Result<&str, String> {
+    let id = id.trim();
+    if id.is_empty() {
+        Err("public Multipass id is required".to_string())
+    } else {
+        Ok(id)
+    }
+}
+
 pub(crate) fn trust_recommendation(score: i64, tier: &str) -> &'static str {
     match tier.to_ascii_uppercase().as_str() {
         "PREFERRED" => "highest-trust candidate",
@@ -233,6 +348,44 @@ mod tests {
         );
         assert_eq!(HelixaClient::agent_path(1), "/api/v2/agent/1");
         assert_eq!(HelixaClient::cred_path(1), "/api/v2/agent/1/cred");
+        assert_eq!(
+            HelixaClient::multipass_profile_path("bendr-2-1"),
+            "/api/multipass/bendr-2-1"
+        );
+        assert_eq!(
+            HelixaClient::agent_card_path("mp_helixa_agent_1"),
+            "/api/multipass/mp_helixa_agent_1/agent-card"
+        );
+        assert_eq!(
+            HelixaClient::x401_manifest_path("bad/id"),
+            "/api/multipass/bad%2Fid/x401"
+        );
+    }
+
+    #[test]
+    fn x401_manifest_normalization_preserves_public_boundaries() {
+        let value = normalize_x401_manifest(json!({
+            "schema_version": "0.1.0",
+            "multipass_id": "mp_helixa_agent_1",
+            "x401_supported": true,
+            "trusted_issuers": [{ "issuer_id": "helixa", "status": "supported" }],
+            "proof_requirements": [{
+                "requirement_id": "human_authorization",
+                "visibility": "public"
+            }],
+            "route_policies": [{ "route_id": "lookup", "x401_required": true }],
+            "boundaries": ["Public x401 metadata does not expose private credentials."]
+        }));
+
+        assert_eq!(value["x401_supported"], true);
+        assert_eq!(value["trusted_issuers"][0]["issuer_id"], "helixa");
+        assert_eq!(value["proof_requirements"][0]["visibility"], "public");
+        assert!(
+            value["boundaries"][0]
+                .as_str()
+                .unwrap()
+                .contains("does not expose private credentials")
+        );
     }
 
     #[test]
