@@ -3,7 +3,8 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::time::Duration;
 
-const BASE_URL: &str = "https://api.helixa.xyz";
+const API_BASE_URL: &str = "https://api.helixa.xyz";
+const MULTIPASS_BASE_URL: &str = "https://helixa.xyz";
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HelixaApp;
@@ -54,7 +55,6 @@ pub(crate) struct GetX401ManifestArgs {
 
 pub(crate) struct HelixaClient {
     http: reqwest::blocking::Client,
-    base_url: String,
 }
 
 impl HelixaClient {
@@ -64,10 +64,7 @@ impl HelixaClient {
             .user_agent("aomi-helixa/0.1.1")
             .build()
             .map_err(|err| format!("failed to create Helixa HTTP client: {err}"))?;
-        Ok(Self {
-            http,
-            base_url: BASE_URL.to_string(),
-        })
+        Ok(Self { http })
     }
 
     pub(crate) fn search_path(query: &str, limit: u32) -> String {
@@ -94,11 +91,26 @@ impl HelixaClient {
         format!("/api/multipass/{}/x401", url_component(id))
     }
 
+    pub(crate) fn api_url(path: &str) -> String {
+        format!("{API_BASE_URL}{path}")
+    }
+
+    pub(crate) fn multipass_url(path: &str) -> String {
+        format!("{MULTIPASS_BASE_URL}{path}")
+    }
+
     pub(crate) fn get_json(&self, path: &str) -> Result<Value, String> {
-        let url = format!("{}{}", self.base_url, path);
+        self.get_json_url(&Self::api_url(path))
+    }
+
+    pub(crate) fn get_multipass_json(&self, path: &str) -> Result<Value, String> {
+        self.get_json_url(&Self::multipass_url(path))
+    }
+
+    fn get_json_url(&self, url: &str) -> Result<Value, String> {
         let res = self
             .http
-            .get(&url)
+            .get(url)
             .send()
             .map_err(|err| format!("Helixa API request failed: {err}"))?;
         let status = res.status();
@@ -349,8 +361,16 @@ mod tests {
         assert_eq!(HelixaClient::agent_path(1), "/api/v2/agent/1");
         assert_eq!(HelixaClient::cred_path(1), "/api/v2/agent/1/cred");
         assert_eq!(
+            HelixaClient::api_url(&HelixaClient::agent_path(1)),
+            "https://api.helixa.xyz/api/v2/agent/1"
+        );
+        assert_eq!(
             HelixaClient::multipass_profile_path("bendr-2-1"),
             "/api/multipass/bendr-2-1"
+        );
+        assert_eq!(
+            HelixaClient::multipass_url(&HelixaClient::multipass_profile_path("bendr-2-1")),
+            "https://helixa.xyz/api/multipass/bendr-2-1"
         );
         assert_eq!(
             HelixaClient::agent_card_path("mp_helixa_agent_1"),

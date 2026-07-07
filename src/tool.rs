@@ -110,7 +110,7 @@ impl DynAomiTool for GetMultipassProfile {
     fn run(_app: &HelixaApp, args: Self::Args, _ctx: DynToolCallCtx) -> Result<Value, String> {
         let id = require_public_id(&args.id)?;
         let client = HelixaClient::new()?;
-        let value = client.get_json(&HelixaClient::multipass_profile_path(id))?;
+        let value = client.get_multipass_json(&HelixaClient::multipass_profile_path(id))?;
         Ok(normalize_multipass_profile(value))
     }
 }
@@ -124,7 +124,7 @@ impl DynAomiTool for GetAgentCard {
     fn run(_app: &HelixaApp, args: Self::Args, _ctx: DynToolCallCtx) -> Result<Value, String> {
         let id = require_public_id(&args.id)?;
         let client = HelixaClient::new()?;
-        let value = client.get_json(&HelixaClient::agent_card_path(id))?;
+        let value = client.get_multipass_json(&HelixaClient::agent_card_path(id))?;
         Ok(normalize_agent_card(value))
     }
 }
@@ -138,7 +138,7 @@ impl DynAomiTool for GetX401Manifest {
     fn run(_app: &HelixaApp, args: Self::Args, _ctx: DynToolCallCtx) -> Result<Value, String> {
         let id = require_public_id(&args.id)?;
         let client = HelixaClient::new()?;
-        let value = client.get_json(&HelixaClient::x401_manifest_path(id))?;
+        let value = client.get_multipass_json(&HelixaClient::x401_manifest_path(id))?;
         Ok(normalize_x401_manifest(value))
     }
 }
