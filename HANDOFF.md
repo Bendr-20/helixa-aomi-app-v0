@@ -2,7 +2,12 @@
 
 ## What is ready
 
-The `helixa/` crate is the handoff package for Aomi/community-apps review.
+This repository is now shaped for Aomi's direct own-repo deployment flow. The deployable Rust app is at the repository root:
+
+- `Cargo.toml`
+- `Cargo.lock`
+- `aomi.toml`
+- `src/`
 
 It exposes seven read-only tools:
 
@@ -25,38 +30,57 @@ V0.1.1 adds Multipass public trust profile context, compact agent-card lookup, a
 - No wallet signing, minting, profile updates, transaction broadcast, or writes.
 - x401 is identity/authority proof metadata. x402 is payment metadata. This app only reads public metadata.
 
-## Aomi deploy requirements
+## Aomi manifest
 
-Aomi deploy cannot be completed from this machine yet because the required deployment credentials are not configured:
+`aomi.toml` uses the current `[app]` shape for direct deploy:
 
-- `AOMI_DEPLOY_TOKEN` or `--activation-token`
-- `AOMI_APP_SOURCE_ID` or `--app-source-id` as a positive integer
-- A non-default app API key may also be required to test `--app helixa` after activation.
-
-The app manifest is in the current documented `[app]` shape and pins `aomi-sdk = "=3.0.0"`, matching the community platform `required_sdk_version`.
-
-## Suggested redeploy command
-
-Run from the `helixa/` directory after the source repo is connected in Aomi:
-
-```bash
-AOMI_DEPLOY_TOKEN=<token> \
-AOMI_APP_SOURCE_ID=<numeric-source-id> \
-aomi deploy --dry-run --aomi-toml-paths aomi.toml
-
-AOMI_DEPLOY_TOKEN=<token> \
-AOMI_APP_SOURCE_ID=<numeric-source-id> \
-aomi deploy --aomi-toml-paths aomi.toml
+```toml
+[app]
+name = "helixa"
+display_name = "Helixa AgentDNA"
+platform = "community"
+git = "https://github.com/Bendr-20/helixa-aomi-app-v0"
+public = true
+server_tags = ["staging"]
 ```
 
-Then activate/test in Aomi with the app key if required.
+Keep `server_tags = ["staging"]` until Victor/Aomi provides the activation/platform token and confirms production activation.
 
-## Local verification
+## Direct deploy flow
 
-Fresh verification commands used for this package:
+Aomi handoff sequence: `connect -> deploy -> activate -> status`.
+
+1. **Connect** `https://github.com/Bendr-20/helixa-aomi-app-v0` as the Aomi source.
+2. **Deploy** from the repository root:
+
+   ```bash
+   AOMI_DEPLOY_TOKEN=<token> \
+   AOMI_APP_SOURCE_ID=<numeric-source-id> \
+   aomi deploy --aomi-toml-paths aomi.toml
+   ```
+
+3. **Activate** the deployed app in Aomi.
+4. **Status** check the activated app through Aomi after activation.
+
+Live activation still needs an Aomi activation/platform token or equivalent platform-side source approval. No tokens, API keys, or secrets are included in this repository.
+
+## Verification
+
+Run from the repository root:
 
 ```bash
 cargo fmt --check
 cargo test --lib
 cargo build
+git diff --check
 ```
+
+If `aomi-build` is installed, also run:
+
+```bash
+aomi-build sdk check --backend https://api.aomi.dev
+```
+
+## Remaining blocker
+
+Deployment activation cannot be completed locally until Victor/Aomi provides the activation/platform token or connects and approves the app source in Aomi.
